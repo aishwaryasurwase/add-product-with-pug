@@ -1,6 +1,7 @@
 
 const Product = require('../models/product');
 const Cart = require('../models/cart');
+const User = require('../models/user');
 
 class ShopController {
     constructor() { }
@@ -16,22 +17,37 @@ class ShopController {
     }
 
     getCart(req, res) {
-        // console.log("GET cart", Product.fetchCartDetails());
-        const cartDetails = Cart.getCart();
-        console.log("CART DETAILS ", cartDetails);
+        req.user
+            .getCart()
+            .then(products => {
+                res.render('shop/cart', {
+                    path: '/cart',
+                    docTitle: 'Your Cart',
+                    products: products
+                });
+            })
+            .catch(err => console.log(err));
+    }
 
-        res.render('shop/cart', { docTitle: 'Your cart', path: '/cart', cartDetails: cartDetails });
+    // getCart(req, res) {
+    //     req.user.getCart("userId", (products) => {
+    //         console.log("CART DETAILS ", products);
+    //         res.render('shop/cart', { docTitle: 'Your cart', path: '/cart', products: products });
+    //     });
+    // }
+
+    getOrders(req, res) {
+        User.getOrders('userId', (orders) => {
+            res.render('shop/orders', { docTitle: 'Your orders', path: '/orders', orders: orders })
+        })
     }
 
     postCart(req, res) {
-        // console.log("post cart product id", req.body.productId);
-        const product = Product.findById(req.body.productId);
-        console.log("Shop js product ***************************", product);
-        // Product.addToCart(product);
-        Cart.addProduct(product.id, product.price);
-        const cartDetails = Cart.getCart();
-        console.log("CART DETAILS ", cartDetails);
-        res.render('shop/cart', { docTitle: 'Your cart', path: '/cart', cartDetails: cartDetails });
+        Product.findById(req.body.productId, (product) => {
+            User.addToCart(product, () => {
+                res.redirect('cart');
+            })
+        });
     }
 
     products(req, res) {
@@ -42,15 +58,23 @@ class ShopController {
         res.render('shop/checkout', { docTitle: 'Checkout', path: '/checkout' });
     }
 
-    getOrders(req, res) {
-        res.render('shop/orders', { docTitle: 'Your orders', path: '/orders' })
-    }
-
     getProductDetails(req, res) {
         Product.findById(req.params.id, (product) => {
-            console.log("product ", product);
             res.render('shop/product-details', { docTitle: 'Product details', path: '/products', product: product })
         });
+    }
+
+    addOrder(req, res) {
+        User.addOrder("userId", (result) => {
+            console.log("RESULT ", result);
+            res.redirect('orders')
+        })
+    }
+
+    deleteItemFromCart(req, res) {
+        User.deleteItem(req.body.productId, () => {
+            res.redirect('cart');
+        })
     }
 }
 

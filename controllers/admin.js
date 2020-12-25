@@ -7,15 +7,14 @@ class AdminController {
     }
 
     postAddProduct(req, res, next) {
-        // products.push({ title: req.body.title });
-        const product = new Product(req.body.title, req.body.imageUrl, req.body.description, req.body.price);
-        product.saveProduct();
-        res.redirect('/products');
+        const product = new Product(req.body.title, req.body.imageUrl, req.body.description, req.body.price, null, req.user._id);
+        product.saveProduct(() => {
+            res.redirect('/products');
+        });
     }
 
     getProducts(req, res) {
         Product.fetchAll(products => {
-            // console.log("all products ************** ", products);
             res.render('admin/products', { docTitle: 'Admin products', path: '/admin/products', prods: products });
         });
     }
@@ -32,24 +31,25 @@ class AdminController {
     }
 
     updateProduct(req, res) {
-        // console.log("title ************** ", req.body._id, req.body.title,
-        //     req.body.description, req.body.price);
         const product = new Product(req.body.title, req.body.imageUrl, req.body.description, req.body.price, req.body._id);
         product.saveProduct(() => {
-            console.log("Updated successfully");
-            res.redirect('/admin/products');
+            res.redirect('/products');
         });
+        // const product = new Product(req.body.title, req.body.imageUrl, req.body.description, req.body.price);
+        // product.modifyProduct(req.body._id, () => {
+        //     console.log("Updated successfully");
+        //     res.redirect('/admin/products');
+        // });
     }
 
     deleteProduct(req, res) {
-        console.log("Delete product id ", req.params.id, (product) => {
+        Product.deleteById(req.params.id, (product) => {
             if (!product) {
                 console.log("Failed to find product");
             }
-            res.render('admin/edit-product', { docTitle: 'Delete product', path: '/admin/delete-product' });
-        });
+            res.redirect('/admin/products');
+        })
     }
-
 }
 
 module.exports = new AdminController();

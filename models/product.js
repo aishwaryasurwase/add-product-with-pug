@@ -2,11 +2,11 @@ const fs = require('fs');
 const utilPath = require('../util/path');
 const path = require('path');
 // const { products } = require('../controllers/shop');
-let products = [];
+
 const p = path.join(utilPath, 'data', 'products.json');
 const mongoConnect = require('../util/database');
 const { ObjectId } = require('mongodb');
-let db;
+var db;
 
 getProductsFromFile = cb => {
     fs.readFile(p, (err, fileContent) => {
@@ -25,26 +25,31 @@ mongoConnect((error, result) => {
 })
 
 module.exports = class Product {
-    constructor(title, imageUrl, description, price, id) {
+    constructor(title, imageUrl, description, price, id, userId) {
         this.title = title;
         this.imageUrl = imageUrl;
         this.description = description;
         this.price = price;
-        this._id = ObjectId(id)
+        this._id = id ? ObjectId(id) : null;
+        this.userId = userId;
     }
 
     saveProduct(cb) {
         if (this._id) {
-            //update product
-            db.collection('products').updateOne({ _id: this._id }, { $set: this }).then(() => {
-                console.log("Product found");
+            db.collection('products').updateOne({ _id: ObjectId(this._id) }, {
+                $set: {
+                    title: this.title,
+                    imageUrl: this.imageUrl,
+                    description: this.description,
+                    price: this.price
+                }
+            }).then(() => {
                 cb("Product updated successfully");
             }).catch((err) => {
                 console.log("Failed to find product into database");
                 throw err;
             });
         } else {
-            //create product
             db.collection('products').insertOne(this).then(() => {
                 console.log("Product added into database successfully");
                 cb('Product added into database successfully');
@@ -53,6 +58,8 @@ module.exports = class Product {
                 throw err;
             });
         }
+
+
         // getProductsFromFile(products => {
         //     this.id = Math.random().toString();
         //     products.push(this);
@@ -60,6 +67,22 @@ module.exports = class Product {
         //         alert(err);
         //     })
         // })
+    }
+
+    modifyProduct(id, cb) {
+        db.collection('products').updateOne({ _id: ObjectId(id) }, {
+            $set: {
+                title: this.title,
+                imageUrl: this.imageUrl,
+                description: this.description,
+                price: this.price
+            }
+        }).then(() => {
+            cb("Product updated successfully");
+        }).catch((err) => {
+            console.log("Failed to find product into database");
+            throw err;
+        });
     }
 
     static fetchAll(cb) {
@@ -76,11 +99,18 @@ module.exports = class Product {
 
     static findById(productId, cb) {
         db.collection('products').findOne({ _id: ObjectId(productId) }).then((product) => {
-            // console.log("product ", product);
             cb(product);
         }).catch(err => {
             console.log("error ", err);
             cb([]);
+        })
+    }
+
+    static deleteById(id, cb) {
+        db.collection('products').deleteOne({ _id: ObjectId(id) }).then((result) => {
+            cb('success');
+        }).catch(err => {
+            console.log("error", err);
         })
     }
 
